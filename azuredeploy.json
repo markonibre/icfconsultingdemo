@@ -1,0 +1,1743 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+
+  "parameters": {
+
+
+
+    "Virtual Network-Name": {
+      "type": "string",
+      "defaultValue": "US-East-VNet",
+      "metadata": {
+        "description": "This is the name of Dev Virtual Network"
+      }
+    },
+    "Virtual Network-Prefix": {
+      "type": "string",
+      "defaultValue": "10.194.0.0/16",
+      "metadata": {
+        "description": "The CIDR address space for Dev Virtual Network in Azure"
+      }
+    },
+
+
+
+    "Virtual Network-Subnet-DMZ-Prefix": {
+      "type": "string",
+      "defaultValue": "10.194.8.0/24",
+      "metadata": {
+        "description": "This is CIDR prefix for the Dev Perimeter Subnet (DMZ)"
+      }
+    },
+    "Virtual Network-Subnet-DMZ-Name": {
+      "type": "string",
+      "defaultValue": "SUBNET-DMZ",
+      "metadata": {
+        "description": "This is the name of Dev Perimeter subnet (DMZ)"
+      }
+    },
+
+    "Virtual Network-Subnet-APP-Prefix": {
+      "type": "string",
+      "defaultValue": "10.194.9.0/24",
+      "metadata": {
+        "description": "This is CIDR prefix for Dev second Subnet (APP)"
+      }
+    },
+    "Virtual Network-Subnet-APP-Name": {
+      "type": "string",
+      "defaultValue": "SUBNET-APP",
+      "metadata": {
+        "description": "This is the name of Dev second subnet (APP)"
+      }
+    },
+
+    "Virtual Network-Subnet-DATA-Prefix": {
+      "type": "string",
+      "defaultValue": "10.194.10.0/24",
+      "metadata": {
+        "description": "This is CIDR prefix for the Dev Data Subnet"
+      }
+    },
+    "Virtual Network-Subnet-DATA-Name": {
+      "type": "string",
+      "defaultValue": "SUBNET-DATA",
+      "metadata": {
+        "description": "This is the name of Dev management subnet (DATA)"
+      }
+    },
+
+    "Virtual Network-Subnet-AEM-Prefix": {
+      "type": "string",
+      "defaultValue": "10.194.11.0/24",
+      "metadata": {
+        "description": "This is CIDR prefix for the Dev AEM Subnet"
+      }
+    },
+    "Virtual Network-Subnet-AEM-Name": {
+      "type": "string",
+      "defaultValue": "SUBNET-AEM",
+      "metadata": {
+        "description": "This is the name of Dev AEM subnet (AEM)"
+      }
+    },
+
+    "Virtual Network-NSG-DMZ-Name": {
+      "type": "string",
+      "defaultValue": "DEV-NSG-DMZ",
+      "metadata": {
+        "description": "This is name of the Network Security Group that will be assigned to DMZ Subnet"
+      }
+    },
+    "Virtual Network-NSG-APP-Name": {
+      "type": "string",
+      "defaultValue": "DEV-NSG-APP",
+      "metadata": {
+        "description": "This is name of the Network Security Group that will be assigned to App Subnet"
+      }
+    },
+    "Virtual Network-NSG-DATA-Name": {
+      "type": "string",
+      "defaultValue": "DEV-NSG-APP",
+      "metadata": {
+        "description": "This is name of the Network Security Group that will be assigned to Data Subnet"
+      }
+    },
+    "Virtual Network-NSG-AEM-Name": {
+      "type": "string",
+      "defaultValue": "DEV-NSG-DATA",
+      "metadata": {
+        "description": "This is name of the Network Security Group that will be assigned to Aem Subnet"
+      }
+    },
+    "Route Table name": {
+      "type": "string",
+      "defaultValue": "DEV-ROUTE-TABLE",
+      "metadata": {
+        "description": "This is the name of the route table"
+      }
+    },
+    "Route Name": {
+      "type": "string",
+      "defaultValue": "ROUTE TABLE I",
+      "metadata": {
+        "description": "This is the frist route"
+      }
+    }
+
+  },
+  "variables": {
+
+    "Virtual NetworkID": "[resourceId('Microsoft.Network/virtualNetworks', parameters('Virtual Network-Name'))]",
+    "SubnetDMZRef": "[concat(variables('Virtual NetworkID'),'/subnets/', parameters('Virtual Network-Subnet-DMZ-Name'))]",
+    "SubnetAPPRef": "[concat(variables('Virtual NetworkID'),'/subnets/', parameters('Virtual Network-Subnet-APP-Name'))]",
+    "SubnetDATARef": "[concat(variables('Virtual NetworkID'),'/subnets/', parameters('Virtual Network-Subnet-DATA-Name'))]",
+    "SubnetAEMRef": "[concat(variables('Virtual NetworkID'),'/subnets/', parameters('Virtual Network-Subnet-AEM-Name'))]"
+
+
+  },
+  "resources": [
+    {
+      "name": "[parameters('Virtual Network-NSG-DMZ-Name')]",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2018-08-01",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "NSG-DMZ"
+      },
+      "properties": {
+        "securityRules": [
+          {
+            "name": "ssh-rule-I",
+            "properties": {
+              "description": "Allow SSH",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "22",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "Author-rule-I",
+            "properties": {
+              "description": "Allow Author Ports",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "4502",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 110,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "Publisher-rule-I",
+            "properties": {
+              "description": "Allow Publisher ports",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "4503",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 120,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8080-rule-I",
+            "properties": {
+              "description": "Allow 8080",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8080",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 130,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8081-rule-I",
+            "properties": {
+              "description": "Allow 8081",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8081",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 140,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8082-rule-I",
+            "properties": {
+              "description": "Allow 8082",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8082",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 150,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8083-rule-I",
+            "properties": {
+              "description": "Allow 8083",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8083",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 160,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8084-rule-I",
+            "properties": {
+              "description": "Allow 8084",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8084",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 170,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8085-rule-I",
+            "properties": {
+              "description": "Allow 8085",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8085",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 180,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8888-rule-I",
+            "properties": {
+              "description": "Allow 8888",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8888",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 190,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "9362-rule-I",
+            "properties": {
+              "description": "Allow 9362",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "9362",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 200,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "443-rule-I",
+            "properties": {
+              "description": "Allow 443",
+              "protocol": "Tcp",
+              "sourcePortRange": "443",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "443",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 210,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "NO-Internet-I",
+            "properties": {
+              "description": "Deny Internet",
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Deny",
+              "priority": 250,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "ssh-rule-O",
+            "properties": {
+              "description": "Allow SSH",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "22",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "Author-rule-O",
+            "properties": {
+              "description": "Allow Author Port",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "4502",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 110,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "Publisher-rule-O",
+            "properties": {
+              "description": "Allow Publisher ports",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "4503",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 120,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8080-rule-O",
+            "properties": {
+              "description": "Allow 8080",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8080",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 130,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8081-rule-O",
+            "properties": {
+              "description": "Allow 8081",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8081",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 140,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8082-rule-O",
+            "properties": {
+              "description": "Allow 8082",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8082",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 150,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8083-rule-O",
+            "properties": {
+              "description": "Allow 8083",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8083",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 160,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8084-rule-O",
+            "properties": {
+              "description": "Allow 8084",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8084",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 170,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8085-rule-O",
+            "properties": {
+              "description": "Allow 8085",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8085",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 180,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8888-rule-O",
+            "properties": {
+              "description": "Allow 8888",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8888",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 190,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "9362-rule-O",
+            "properties": {
+              "description": "Allow 9362",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "9362",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 200,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "443-rule-O",
+            "properties": {
+              "description": "Allow 443",
+              "protocol": "Tcp",
+              "sourcePortRange": "443",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "443",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 210,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "NO-Internet-O",
+            "properties": {
+              "description": "Deny Internet",
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "*",
+              "destinationAddressPrefix": "Internet",
+              "access": "Deny",
+              "priority": 250,
+              "direction": "Outbound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[parameters('Virtual Network-NSG-APP-Name')]",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2018-08-01",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "NSG-APP"
+      },
+      "properties": {
+        "securityRules": [
+          {
+            "name": "ssh-rule-I",
+            "properties": {
+              "description": "Allow SSH",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "22",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "Author-rule-I",
+            "properties": {
+              "description": "Allow Author Ports",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "4502",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 110,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "Publisher-rule-I",
+            "properties": {
+              "description": "Allow Publisher ports",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "4503",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 120,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8080-rule-I",
+            "properties": {
+              "description": "Allow 8080",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8080",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 130,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8081-rule-I",
+            "properties": {
+              "description": "Allow 8081",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8081",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 140,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8082-rule-I",
+            "properties": {
+              "description": "Allow 8082",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8082",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 150,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8083-rule-I",
+            "properties": {
+              "description": "Allow 8083",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8083",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 160,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8084-rule-I",
+            "properties": {
+              "description": "Allow 8084",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8084",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 170,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8085-rule-I",
+            "properties": {
+              "description": "Allow 8085",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8085",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 180,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8888-rule-I",
+            "properties": {
+              "description": "Allow 8888",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8888",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 190,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "9362-rule-I",
+            "properties": {
+              "description": "Allow 9362",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "9362",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 200,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "443-rule-I",
+            "properties": {
+              "description": "Allow 443",
+              "protocol": "Tcp",
+              "sourcePortRange": "443",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "443",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 210,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "NO-Internet-I",
+            "properties": {
+              "description": "Deny Internet",
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Deny",
+              "priority": 250,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "ssh-rule-O",
+            "properties": {
+              "description": "Allow SSH",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "22",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "Author-rule-O",
+            "properties": {
+              "description": "Allow Author Port",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "4502",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 110,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "Publisher-rule-O",
+            "properties": {
+              "description": "Allow Publisher ports",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "4503",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 120,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8080-rule-O",
+            "properties": {
+              "description": "Allow 8080",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8080",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 130,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8081-rule-O",
+            "properties": {
+              "description": "Allow 8081",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8081",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 140,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8082-rule-O",
+            "properties": {
+              "description": "Allow 8082",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8082",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 150,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8083-rule-O",
+            "properties": {
+              "description": "Allow 8083",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8083",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 160,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8084-rule-O",
+            "properties": {
+              "description": "Allow 8084",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8084",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 170,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8085-rule-O",
+            "properties": {
+              "description": "Allow 8085",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8085",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 180,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8888-rule-O",
+            "properties": {
+              "description": "Allow 8888",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8888",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 190,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "9362-rule-O",
+            "properties": {
+              "description": "Allow 9362",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "9362",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 200,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "443-rule-O",
+            "properties": {
+              "description": "Allow 443",
+              "protocol": "Tcp",
+              "sourcePortRange": "443",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "443",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 210,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "NO-Internet-O",
+            "properties": {
+              "description": "Deny Internet",
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "*",
+              "destinationAddressPrefix": "Internet",
+              "access": "Deny",
+              "priority": 250,
+              "direction": "Outbound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[parameters('Virtual Network-NSG-DATA-Name')]",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2018-08-01",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "NSG-DATA"
+      },
+      "properties": {
+        "securityRules": [
+          {
+            "name": "ssh-rule-I",
+            "properties": {
+              "description": "Allow SSH",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "22",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "Author-rule-I",
+            "properties": {
+              "description": "Allow Author Ports",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "4502",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 110,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "Publisher-rule-I",
+            "properties": {
+              "description": "Allow Publisher ports",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "4503",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 120,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8080-rule-I",
+            "properties": {
+              "description": "Allow 8080",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8080",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 130,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8081-rule-I",
+            "properties": {
+              "description": "Allow 8081",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8081",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 140,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8082-rule-I",
+            "properties": {
+              "description": "Allow 8082",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8082",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 150,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8083-rule-I",
+            "properties": {
+              "description": "Allow 8083",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8083",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 160,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8084-rule-I",
+            "properties": {
+              "description": "Allow 8084",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8084",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 170,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8085-rule-I",
+            "properties": {
+              "description": "Allow 8085",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8085",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 180,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8888-rule-I",
+            "properties": {
+              "description": "Allow 8888",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8888",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 190,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "9362-rule-I",
+            "properties": {
+              "description": "Allow 9362",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "9362",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 200,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "443-rule-I",
+            "properties": {
+              "description": "Allow 443",
+              "protocol": "Tcp",
+              "sourcePortRange": "443",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "443",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 210,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "NO-Internet-I",
+            "properties": {
+              "description": "Deny Internet",
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Deny",
+              "priority": 250,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "ssh-rule-O",
+            "properties": {
+              "description": "Allow SSH",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "22",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "Author-rule-O",
+            "properties": {
+              "description": "Allow Author Port",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "4502",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 110,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "Publisher-rule-O",
+            "properties": {
+              "description": "Allow Publisher ports",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "4503",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 120,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8080-rule-O",
+            "properties": {
+              "description": "Allow 8080",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8080",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 130,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8081-rule-O",
+            "properties": {
+              "description": "Allow 8081",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8081",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 140,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8082-rule-O",
+            "properties": {
+              "description": "Allow 8082",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8082",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 150,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8083-rule-O",
+            "properties": {
+              "description": "Allow 8083",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8083",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 160,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8084-rule-O",
+            "properties": {
+              "description": "Allow 8084",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8084",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 170,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8085-rule-O",
+            "properties": {
+              "description": "Allow 8085",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8085",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 180,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8888-rule-O",
+            "properties": {
+              "description": "Allow 8888",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8888",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 190,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "9362-rule-O",
+            "properties": {
+              "description": "Allow 9362",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "9362",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 200,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "443-rule-O",
+            "properties": {
+              "description": "Allow 443",
+              "protocol": "Tcp",
+              "sourcePortRange": "443",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "443",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 210,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "NO-Internet-O",
+            "properties": {
+              "description": "Deny Internet",
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "*",
+              "destinationAddressPrefix": "Internet",
+              "access": "Deny",
+              "priority": 250,
+              "direction": "Outbound"
+            }
+          }
+        ]
+      }
+
+
+    },
+
+    {
+      "name": "[parameters('Virtual Network-NSG-AEM-Name')]",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2018-08-01",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "NSG-AEM"
+      },
+      "properties": {
+        "securityRules": [
+          {
+            "name": "ssh-rule-I",
+            "properties": {
+              "description": "Allow SSH",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "22",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "Author-rule-I",
+            "properties": {
+              "description": "Allow Author Ports",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "4502",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 110,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "Publisher-rule-I",
+            "properties": {
+              "description": "Allow Publisher ports",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "4503",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 120,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8080-rule-I",
+            "properties": {
+              "description": "Allow 8080",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8080",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 130,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8081-rule-I",
+            "properties": {
+              "description": "Allow 8081",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8081",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 140,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8082-rule-I",
+            "properties": {
+              "description": "Allow 8082",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8082",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 150,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8083-rule-I",
+            "properties": {
+              "description": "Allow 8083",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8083",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 160,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8084-rule-I",
+            "properties": {
+              "description": "Allow 8084",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8084",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 170,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8085-rule-I",
+            "properties": {
+              "description": "Allow 8085",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8085",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 180,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "8888-rule-I",
+            "properties": {
+              "description": "Allow 8888",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "8888",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 190,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "9362-rule-I",
+            "properties": {
+              "description": "Allow 9362",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "9362",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 200,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "443-rule-I",
+            "properties": {
+              "description": "Allow 443",
+              "protocol": "Tcp",
+              "sourcePortRange": "443",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "443",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 210,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "NO-Internet-I",
+            "properties": {
+              "description": "Deny Internet",
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "Internet",
+              "destinationPortRange": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Deny",
+              "priority": 250,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "ssh-rule-O",
+            "properties": {
+              "description": "Allow SSH",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "22",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "Author-rule-O",
+            "properties": {
+              "description": "Allow Author Port",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "4502",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 110,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "Publisher-rule-O",
+            "properties": {
+              "description": "Allow Publisher ports",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "4503",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 120,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8080-rule-O",
+            "properties": {
+              "description": "Allow 8080",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8080",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 130,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8081-rule-O",
+            "properties": {
+              "description": "Allow 8081",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8081",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 140,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8082-rule-O",
+            "properties": {
+              "description": "Allow 8082",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8082",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 150,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8083-rule-O",
+            "properties": {
+              "description": "Allow 8083",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8083",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 160,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8084-rule-O",
+            "properties": {
+              "description": "Allow 8084",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8084",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 170,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8085-rule-O",
+            "properties": {
+              "description": "Allow 8085",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8085",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 180,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "8888-rule-O",
+            "properties": {
+              "description": "Allow 8888",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "8888",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 190,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "9362-rule-O",
+            "properties": {
+              "description": "Allow 9362",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "9362",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 200,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "443-rule-O",
+            "properties": {
+              "description": "Allow 443",
+              "protocol": "Tcp",
+              "sourcePortRange": "443",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "443",
+              "destinationAddressPrefix": "Internet",
+              "access": "Allow",
+              "priority": 210,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "NO-Internet-O",
+            "properties": {
+              "description": "Deny Internet",
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationPortRange": "*",
+              "destinationAddressPrefix": "Internet",
+              "access": "Deny",
+              "priority": 250,
+              "direction": "Outbound"
+            }
+          }
+        ]
+      }
+
+
+    },
+    {
+      "name": "[parameters('Route Table name')]",
+      "type": "Microsoft.Network/routeTables",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2018-08-01",
+      "dependsOn": [
+
+        "[parameters('Route Name')]"
+      ]
+
+    },
+    {
+      "name": "[parameters('Virtual Network-Name')]",
+      "type": "Microsoft.Network/virtualNetworks",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2018-08-01",
+      "dependsOn": [
+
+        "[parameters('Virtual Network-NSG-DMZ-Name')]",
+        "[parameters('Virtual Network-NSG-APP-Name')]",
+        "[parameters('Virtual Network-NSG-DATA-Name')]",
+        "[parameters('Virtual Network-NSG-AEM-Name')]",
+        "[parameters('Route Table name')]"
+
+      ],
+
+      "tags": {
+        "displayName": "Virtual Network"
+      },
+
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[parameters('Virtual Network-Prefix')]"
+          ]
+        },
+
+
+        "subnets": [
+          {
+            "name": "[parameters('Virtual Network-Subnet-DMZ-Name')]",
+            "properties": {
+              "addressPrefix": "[parameters('Virtual Network-Subnet-DMZ-Prefix')]",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('Virtual Network-NSG-DMZ-Name'))]"
+              },
+              "routeTable": {
+                "id": "[resourceId('Microsoft.Network/routeTables', parameters('Route Table name'))]"
+              }
+            }
+          },
+          {
+            "name": "[parameters('Virtual Network-Subnet-APP-Name')]",
+            "properties": {
+              "addressPrefix": "[parameters('Virtual Network-Subnet-APP-Prefix')]",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('Virtual Network-NSG-APP-Name'))]"
+              }
+            }
+          },
+          {
+            "name": "[parameters('Virtual Network-Subnet-DATA-Name')]",
+            "properties": {
+              "addressPrefix": "[parameters('Virtual Network-Subnet-DATA-Prefix')]",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('Virtual Network-NSG-DATA-Name'))]"
+              }
+            }
+          },
+          {
+            "name": "[parameters('Virtual Network-Subnet-AEM-Name')]",
+            "properties": {
+              "addressPrefix": "[parameters('Virtual Network-Subnet-AEM-Prefix')]",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('Virtual Network-NSG-AEM-Name'))]"
+              }
+            }
+          }
+        ]
+      }
+
+    }
+  ],
+  "outputs": {
+  }
+}
